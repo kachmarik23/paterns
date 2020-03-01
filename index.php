@@ -10,6 +10,8 @@ class BuilderMySQl
     private $table;
     private $whereQuery;
     private $limit;
+    private $orderByParam;
+    private $order;
 
 // подключимся к БД
     public function __construct()
@@ -59,13 +61,17 @@ class BuilderMySQl
         $this->limit = $count;
         return $this;
     }
+
     // DELETE
-    public  function delete(){
-        $q="DELETE FROM `".$this->table."`";
+    public function delete()
+    {
+        $q = "DELETE FROM `" . $this->table . "`";
         $this->mysqlWhereSet($q);
         return $this->db->query($q);
     }
-    private function mysqlWhereSet(&$q){
+
+    private function mysqlWhereSet(&$q)
+    {
         //проверим если условие
         if ($this->whereQuery) {
             $q .= " WHERE ";
@@ -75,13 +81,11 @@ class BuilderMySQl
                 }
                 $q .= "`{$where['column']}` {$where['op']} '{$where['value']}' ";
             }
-            //добавим лимит
-            if ($this->limit) {
-                $q .= " LIMIT " . $this->limit;
-            }
+
         }
 
     }
+
     //INSERT INTO
     public function insert($data)
     {
@@ -115,6 +119,14 @@ class BuilderMySQl
         return $this->db->query($q);
     }
 
+    public function orderBy($key, $order="ASC")
+    {
+        $this->orderByParam = $key;
+        $this->order = $order;
+        return $this;
+
+    }
+
 //сам запрос
     public function get()
     {
@@ -122,19 +134,29 @@ class BuilderMySQl
         // $query = 'SELECT*FROM`user`WHERE `id`=1 LIMIT 1';
         $q = "SELECT * FROM `" . $this->table . "`";
         $this->mysqlWhereSet($q);//проверим на наличие where b and
+        //добавим сортировку
+        if ($this->orderByParam){
+            $q.=" ORDER BY ".$this->orderByParam." ".(empty($this->order)? "ASC":$this->order);
+        }
+        //добавим лимит
+        if ($this->limit) {
+            $q .= " LIMIT " . $this->limit;
+        }
         return $this->db->query($q)->fetch_all(MYSQLI_ASSOC);
     }
 }
 //Удалить
 //BuilderMySQl::table('orders')->where('user_id',2)->delete();
 //SELECT
-/*
+
 $item = BuilderMySQl::table('items')
     ->where('id', '<', 6)
     ->where('category_id', 2)
     ->take(2)
+    ->orderBy('id','DESC')
     ->get();
 print_r($item);
+/*
 //INSERT если необходимо вставить много значений, лучше всего сначала сформировать циклом запрос,
 // нельзя вставлять запрос в цикл и передавать значения по одному, это увеличивает нагрузку на пустом месте
 // для передачи данных в запрос мы организуем массив массивов
